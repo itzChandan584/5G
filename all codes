@@ -1,0 +1,175 @@
+%%%%%%%%%%%%%%%%%%%%  6th (1,2,3,4,26)
+%% (1,2,3,4,26) Using MATLAB, study the evolution of digital modulation schemes 1G, 2G, 3G, 4G and 5G analyze and compare their BER performance.
+clc; clear; close all; % change M values 2 2 4 16 64
+SNR = 0:2:30; M = [2 2 4 16 64]; BER = zeros(5,length(SNR));
+for g = 1:5
+  for i = 1:length(SNR)
+    d = randi([0 M(g)-1],1e5,1);
+    s = qammod(d,M(g),'UnitAveragePower',true);
+    r = awgn(s,SNR(i),'measured');
+    BER(g,i) = sum(qamdemod(r,M(g),'UnitAveragePower',true)~=d)/(1e5*log2(M(g)));
+  end
+end
+semilogy(SNR,BER,'LineWidth',1.5); grid on;
+xlabel('SNR(dB)'); ylabel('BER'); title('BER vs SNR (1G–5G)');
+legend('1G','2G','3G','4G','5G'); 
+
+%%%%%%%%%%%%%%%%%%%% 7th (5,6,7,15,16) 
+%% (5,6,7) Generate OFDM waveforms using QPSK, 16QAM, 64-QAM modulation schemes. Analyze its constellation characteristics.
+clc; clear; close all; % change M values 4 16 64
+M = [4 16 64]; N = 64;
+for i = 1:3
+ d = randi([0 M(i)-1],N*50,1);
+ s = qammod(d,M(i),'UnitAveragePower',true);
+ ifft(reshape(s,N,[]));              % OFDM (no plot needed)
+ figure; scatterplot(s);
+ title(['Constellation - ' num2str(M(i)) '-QAM']);
+end
+
+%% (15) Generate OFDM waveforms using QPSK, 16QAM, 64-QAM modulation schemes. Analyze BER vs SNR.
+clc; clear; close all;
+M = [4 16 64]; SNR = 0:2:30; N = 64; CP = 16; BER = zeros(3,length(SNR));
+for m = 1:3
+ for i = 1:length(SNR)
+  d = randi([0 M(m)-1],N*200,1);
+  s = qammod(d,M(m),'UnitAveragePower',true);
+  x = ifft(reshape(s,N,[])); x = [x(end-CP+1:end,:); x];
+  r = awgn(x(:),SNR(i),'measured');
+  rM = reshape(r,N+CP,[]); y = fft(rM(CP+1:end,:));
+  BER(m,i) = mean(qamdemod(y(:),M(m),'UnitAveragePower',true)~=d);
+ end
+end
+semilogy(SNR,BER,'LineWidth',1.5); grid on;
+legend('QPSK','16QAM','64QAM'); xlabel('SNR'); ylabel('BER');
+
+%% (16) Generate OFDM waveforms using QPSK, 16QAM, 64-QAM modulation schemes. Analyze OFDM Time-domain waveforms.
+clc; clear;
+M = [4 16 64]; N = 64; CP = 16;
+for i = 1:3
+ d = randi([0 M(i)-1],N*20,1);
+ s = qammod(d,M(i),'UnitAveragePower',true);
+ x = ifft(reshape(s,N,[]));          % OFDM (no CP)
+ xCP = [x(end-CP+1:end,:); x];       % OFDM with CP
+ subplot(3,1,i);
+ plot(real(x(:)),'b'); hold on;
+ plot(real(xCP(:)),'r--'); grid on;
+ title([num2str(M(i)) '-QAM OFDM Time Domain']);
+ legend('Without CP','With CP');
+end
+
+%%%%%%%%%%%%%%%%%%%% 8th (8,9,10,11,13,14,17,25,26)
+
+%% (8,11,14,25) Analyze the throughput vs Fronthaul Latency performance of a 5G CU–DU split architecture in SA and NSA Modes.
+clc; clear; close all;
+fh = 0:0.5:5;                     % Fronthaul latency (ms)
+thSA = 1*(1 - (0.2+fh)/10);       % SA throughput (Gbps)
+thNSA = 1.2*(1 - (0.2+fh/2)/10);  % NSA throughput (Gbps)
+plot(fh,thSA,'-o',fh,thNSA,'-s','LineWidth',1.5); grid on;
+xlabel('Fronthaul Latency (ms)');
+ylabel('Throughput (Gbps)');
+legend('SA','NSA','Location','northeast');
+title('Throughput vs Fronthaul Latency (5G CU–DU Split)');
+
+%% (9,13,25) Analyze the Latency vs Fronthaul Latency performance of a 5G CU–DU split architecture in SA and NSA modes.
+clc; clear; close all;
+fh = 0:0.5:5;                     % Fronthaul latency (ms)
+latSA = 0.2 + fh;                 % SA latency
+latNSA = 0.2 + fh/2;              % NSA latency
+plot(fh,latSA,'-o',fh,latNSA,'-s','LineWidth',1.5); grid on;
+xlabel('Fronthaul Latency (ms)');
+ylabel('Total Latency (ms)');
+legend('SA','NSA','Location','northwest');
+title('Latency vs Fronthaul Latency (5G CU–DU Split)');
+
+%% (10,17,26) Simulate the CU-DU split architecture of a 5G base station and provide its protocol stack representation in SA and NA modes.
+clc; clear; close all;
+SA_UP = {'PHY-DU','MAC-DU','RLC-CU','PDCP-CU','SDAP-CU'};
+SA_CP = {'PHY-DU','MAC-DU','RLC-CU','PDCP-CU','RRC','NAS'};
+NSA_UP = {'PHY-DU','MAC-DU','RLC-LTE','PDCP-LTE','SDAP-LTE'};
+NSA_CP = {'PHY-DU','MAC-DU','RLC-LTE','PDCP-LTE','RRC','NAS'};
+subplot(2,2,1); barh(ones(1,5)); set(gca,'yticklabel',SA_UP); title('SA User Plane');
+subplot(2,2,2); barh(ones(1,6)); set(gca,'yticklabel',SA_CP); title('SA Control Plane');
+subplot(2,2,3); barh(ones(1,5)); set(gca,'yticklabel',NSA_UP); title('NSA User Plane');
+subplot(2,2,4); barh(ones(1,6)); set(gca,'yticklabel',NSA_CP); title('NSA Control Plane');
+
+%%%%%%%%%%%%%%%%%%%% 9th (12,23,24,25)
+
+%% (12,23,25) Simulate and analyze the impact of 5G numerologies on slot duration and frame structure for µ=0 and µ=1.
+clc; clear; close all; % change mu values as required
+mu = [0 1 2]; % Change as required
+N = 64; L = 14;
+
+for i = 1:length(mu)
+ grid = qammod(randi([0 3],N*L,1),4,'UnitAveragePower',true);
+ grid = reshape(grid,N,L);
+ tx = ifft(grid,[],1);
+
+ figure; plot(abs(tx(:))); grid on;
+ title(['Time-Domain OFDM (\mu=' num2str(mu(i)) ')']);
+
+ figure; imagesc(abs(grid)); axis xy; colorbar;
+ title(['Resource Grid (\mu=' num2str(mu(i)) ')']);
+end
+
+%%%%%%%%%%%%%%%%%%%% 10th (20,21,22)
+%% (20) Generate the 5G NR downlink transmit waveform including data and CSI-RS. Model a MIMO wireless channel and add AWGN noise. Plot and distinguish the transmitted signal, noise signal, and received signal waveforms and received signal without beamforming.
+clc; clear; close all;
+Ntx=4; Nsc=256; M=4; SNR=10;
+pilot = exp(1j*2*pi*randi([0 M-1],1,Nsc)/M);
+H = (randn(1,Ntx,Nsc)+1j*randn(1,Ntx,Nsc))/sqrt(2);
+noise = (randn(1,Nsc)+1j*randn(1,Nsc))/sqrt(2)*10^(-SNR/20);
+
+for k = 1:Nsc
+ rx(k) = H(:,:,k)*pilot(k)*ones(Ntx,1) + noise(k);
+end
+
+figure; plot(real(pilot),'b'); hold on;
+plot(real(noise),'k'); plot(real(rx),'r'); grid on;
+legend('Tx','Noise','Rx'); title('Received Signal (No Beamforming)');
+
+%% (21) Generate the 5G NR downlink transmit waveform including data and CSI-RS. Model a MIMO wireless channel and add AWGN noise. Estimate the channel using CSI-RS and apply Equal Gain Transmission (EGT) beamforming . Plot and distinguish the transmitted signal, noise signal, and received signal waveforms and EGT beamformed signal.
+clc; clear; close all;
+Ntx=4; Nsc=256; M=4; SNR=10;
+pilot = exp(1j*2*pi*randi([0 M-1],1,Nsc)/M);
+H = (randn(1,Ntx,Nsc)+1j*randn(1,Ntx,Nsc))/sqrt(2);
+noise = (randn(1,Nsc)+1j*randn(1,Nsc))/sqrt(2)*10^(-SNR/20);
+
+for k=1:Nsc
+ w = exp(1j*angle(H(:,:,k)')); w = w/norm(w);   % EGT weights
+ rx(k) = H(:,:,k)*w*pilot(k) + noise(k);
+end
+
+figure; plot(real(pilot),'b'); hold on;
+plot(real(noise),'k'); plot(real(rx),'m'); grid on;
+legend('Tx','Noise','EGT Rx'); title('EGT Beamforming');
+
+%% (22) Generate the 5G NR downlink transmit waveform including data and CSI-RS. Model a MIMO  wireless channel and add AWGN noise. Estimate the channel using CSI-RS and apply Maximum Ratio Transmission (MRT) beamforming. Plot and distinguish the transmitted signal, noise signal, and received signal waveforms and MRT beamformed signal.
+clc; clear; close all;
+Ntx=4; Nsc=256; M=4; SNR=10;
+pilot = exp(1j*2*pi*randi([0 M-1],1,Nsc)/M);
+H = (randn(1,Ntx,Nsc)+1j*randn(1,Ntx,Nsc))/sqrt(2);
+noise = (randn(1,Nsc)+1j*randn(1,Nsc))/sqrt(2)*10^(-SNR/20);
+
+for k=1:Nsc
+ w = H(:,:,k)'; w = w/norm(w);                   % MRT weights
+ rx(k) = H(:,:,k)*w*pilot(k) + noise(k);
+end
+
+figure; plot(real(pilot),'b'); hold on;
+plot(real(noise),'k'); plot(real(rx),'r'); grid on;
+legend('Tx','Noise','MRT Rx'); title('MRT Beamforming');
+
+%%%%%%%%%%%%%%%%%%%% 11th (18, 19)
+%% (18, 19) Simulate the mapping of PUCCH and PRACH in the uplink grid and identify the resources allocated for uplink control information.
+clc; clear; close all;
+Nsc = 72; Nsym = 14; SC = 12;
+grid = zeros(Nsc,Nsym);                 % 0=unused
+
+grid((2-1)*SC+1:3*SC,1:4) = 1;           % PRACH
+grid((1-1)*SC+1:1*SC,13:14) = 2;         % PUCCH
+grid((6-1)*SC+1:6*SC,13:14) = 2;         % PUCCH
+
+figure; imagesc(grid); axis xy; grid on;
+colormap([1 1 1; 1 0 0; 0 0 1]);
+xlabel('OFDM Symbols'); ylabel('Subcarriers');
+title('Uplink Resource Grid: PRACH & PUCCH');
